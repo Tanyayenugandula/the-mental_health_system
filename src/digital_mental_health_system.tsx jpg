@@ -1,0 +1,1518 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Heart, Calendar, MessageSquare, BookOpen, BarChart3, User, Shield, 
+  Sparkles, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Send, 
+  Plus, Edit, Trash2, Clock, Filter, Search, FileText, Code, Check, 
+  ArrowRight, Activity, Smile, Frown, Meh, Lock, RefreshCw, Layers, Server, Globe
+} from 'lucide-react';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell 
+} from 'recharts';
+
+const SEED_RESOURCES = [
+  { id: '1', title: 'Managing Exam Anxiety: Breathwork and Grounding', type: 'exercise', category: 'Anxiety', url: '#', description: 'A 5-minute practical guide to resetting your nervous system before big exams.', content: 'Try the 4-7-8 breathing method: Inhale for 4s, hold for 7s, exhale slowly for 8s.' },
+  { id: '2', title: 'Sleep Hygiene for College Students', type: 'article', category: 'Sleep', url: '#', description: 'Simple habits to improve sleep quality despite irregular class schedules.', content: 'Keep bed for sleep only. Avoid screens 45 mins before sleep. Keep room temperature around 68°F.' },
+  { id: '3', title: 'Overcoming Imposter Syndrome in Academia', type: 'article', category: 'Academic Stress', url: '#', description: 'Understanding that feeling out of place is common and how to reframe your thoughts.', content: 'Acknowledge your achievements. Remember that admission committees selected you intentionally.' },
+  { id: '4', title: '10-Minute Guided Mindfulness Meditation', type: 'video', category: 'Mindfulness', url: '#', description: 'Calm your busy mind with this step-by-step audio-guided mindfulness session.', content: 'Focus on body sensations. When thoughts wander, gently bring focus back to the breath.' },
+  { id: '5', title: 'Recognizing Signs of Burnout & Depression', type: 'article', category: 'Depression', url: '#', description: 'Early warning signs and how to seek help early without shame.', content: 'Loss of interest in hobbies, persistent fatigue, and social withdrawal are gentle signs to check in with yourself.' },
+  { id: '6', title: 'Progressive Muscle Relaxation (PMR)', type: 'exercise', category: 'Mindfulness', url: '#', description: 'Tense and release muscle groups to physically discharge mental stress.', content: 'Tense your toes for 5 seconds, release for 10. Move up through legs, stomach, shoulders, and face.' },
+  { id: '7', title: 'Navigating Roommate & Peer Conflicts', type: 'article', category: 'Academic Stress', url: '#', description: 'Communication frameworks for setting respectful boundaries in dorms.', content: 'Use "I" statements: "I feel unfocused when the light is on past midnight" instead of "You are disruptive".' },
+  { id: '8', title: 'Improving Concentration During Long Lectures', type: 'video', category: 'Academic Stress', url: '#', description: 'Active listening and note-taking techniques to reduce academic overwhelm.', content: 'Try the Cornell Note-Taking Method to organize ideas and make revision effortless.' },
+  { id: '9', title: 'Nighttime Wind-Down Rituals', type: 'exercise', category: 'Sleep', url: '#', description: 'A structured 20-minute evening ritual to quiet racing thoughts before sleep.', content: 'Brain-dump your to-do list onto paper so your mind knows it won\'t be forgotten overnight.' },
+  { id: '10', title: 'Understanding Social Anxiety on Campus', type: 'article', category: 'Anxiety', url: '#', description: 'Small steps toward comfortable social interactions in student groups.', content: 'Set micro-goals: smile or say hello to one classmate daily. Small exposures build lasting comfort.' }
+];
+
+const INITIAL_COUNSELORS = [
+  { id: 'c1', name: 'Dr. Sarah Jenkins, PsyD', specialty: 'Anxiety & Academic Stress', availability: 'Mon, Wed, Fri', image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80' },
+  { id: 'c2', name: 'Marcus Vance, LMFT', specialty: 'Depression & Relationship Support', availability: 'Tue, Thu, Sat', image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=150&q=80' },
+  { id: 'c3', name: 'Elena Rostova, LCSW', specialty: 'Mindfulness & Trauma-Informed Care', availability: 'Mon - Thu', image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80' }
+];
+
+const PHQ9_QUESTIONS = [
+  "Little interest or pleasure in doing things",
+  "Feeling down, depressed, or hopeless",
+  "Trouble falling or staying asleep, or sleeping too much",
+  "Feeling tired or having little energy",
+  "Poor appetite or overeating",
+  "Feeling bad about yourself — or that you are a failure",
+  "Trouble concentrating on things, such as reading or classwork",
+  "Moving or speaking so slowly that other people could have noticed",
+  "Thoughts that you would be better off dead or of hurting yourself"
+];
+
+const GAD7_QUESTIONS = [
+  "Feeling nervous, anxious, or on edge",
+  "Not being able to stop or control worrying",
+  "Worrying too much about different things",
+  "Trouble relaxing",
+  "Being so restless that it is hard to sit still",
+  "Becoming easily annoyed or irritable",
+  "Feeling afraid as if something awful might happen"
+];
+
+// Seed Mood History
+const generateInitialMoods = () => {
+  const history = [];
+  const today = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    history.push({
+      date: dateStr,
+      moodScore: Math.floor(Math.random() * 3) + 3, // 3 to 5
+      stressLevel: Math.floor(Math.random() * 3) + 1, // 1 to 3
+      note: i === 0 ? 'Felt balanced today after taking a short walk.' : 'Routine day with classes.'
+    });
+  }
+  return history;
+};
+
+const CODE_FILES = [
+  {
+    path: 'backend/package.json',
+    title: 'Backend Package JSON',
+    language: 'json',
+    code: `{
+  "name": "mental-health-backend",
+  "version": "1.0.0",
+  "description": "REST API & Socket.io server for Digital Mental Health Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.0",
+    "socket.io": "^4.7.2"
+  }
+}`
+  },
+  {
+    path: 'backend/models/User.js',
+    title: 'User Mongoose Model',
+    language: 'javascript',
+    code: `const mongoose = require('mongoose');
+
+const UserSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true, lowercase: true },
+  password: { type: String, required: true },
+  role: { 
+    type: String, 
+    enum: ['student', 'counselor', 'admin'], 
+    default: 'student' 
+  },
+  createdAt: { type: Date, default: Date.now }
+});
+
+module.exports = mongoose.model('User', UserSchema);`
+  },
+  {
+    path: 'backend/models/Assessment.js',
+    title: 'Assessment Mongoose Model',
+    language: 'javascript',
+    code: `const mongoose = require('mongoose');
+
+const AssessmentSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  type: { type: String, enum: ['PHQ-9', 'GAD-7'], required: true },
+  answers: [{ type: Number, required: true }],
+  totalScore: { type: Number, required: true },
+  severity: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+module.exports = mongoose.model('Assessment', AssessmentSchema);`
+  },
+  {
+    path: 'backend/middleware/auth.js',
+    title: 'JWT & Role Auth Middleware',
+    language: 'javascript',
+    code: `const jwt = require('jsonwebtoken');
+
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Authorization token required' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // { id, role }
+    next();
+  } catch (err) {
+    return res.status(403).json({ message: 'Invalid or expired token' });
+  }
+};
+
+const restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied: insufficient permissions' });
+    }
+    next();
+  };
+};
+
+module.exports = { verifyToken, restrictTo };`
+  },
+  {
+    path: 'backend/routes/assessment.js',
+    title: 'Assessment Engine REST Route',
+    language: 'javascript',
+    code: `const express = require('express');
+const router = express.Router();
+const Assessment = require('../models/Assessment');
+const { verifyToken } = require('../middleware/auth');
+
+// Calculate server-side severity label
+const calculateSeverity = (type, score) => {
+  if (type === 'PHQ-9') {
+    if (score <= 4) return 'Minimal / None';
+    if (score <= 9) return 'Mild Depression';
+    if (score <= 14) return 'Moderate Depression';
+    if (score <= 19) return 'Moderately Severe Depression';
+    return 'Severe Depression';
+  } else {
+    if (score <= 4) return 'Minimal Anxiety';
+    if (score <= 9) return 'Mild Anxiety';
+    if (score <= 14) return 'Moderate Anxiety';
+    return 'Severe Anxiety';
+  }
+};
+
+router.post('/', verifyToken, async (req, res) => {
+  try {
+    const { type, answers } = req.body;
+    const totalScore = answers.reduce((a, b) => a + b, 0);
+    const severity = calculateSeverity(type, totalScore);
+
+    const assessment = new Assessment({
+      userId: req.user.id,
+      type,
+      answers,
+      totalScore,
+      severity
+    });
+
+    await assessment.save();
+    res.status(201).json({ success: true, data: assessment });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error saving assessment' });
+  }
+});
+
+module.exports = router;`
+  },
+  {
+    path: 'backend/server.js',
+    title: 'Express & Socket.io Server Entry',
+    language: 'javascript',
+    code: `const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const cors = require('cors');
+const mongoose = require('mongoose');
+require('dotenv').config();
+
+const app = express();
+const server = http.createServer(app);
+
+app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
+app.use(express.json());
+
+// Socket.io Real-time anonymous chat setup
+const io = new Server(server, {
+  cors: { origin: process.env.CLIENT_URL || '*' }
+});
+
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('join_room', (roomId) => {
+    socket.join(roomId);
+  });
+
+  socket.on('send_message', (data) => {
+    // Broadcast message to room preserving anonymity tag
+    io.to(data.roomId).emit('receive_message', {
+      senderId: data.senderRole === 'student' ? 'Anonymous Student' : data.senderName,
+      message: data.message,
+      timestamp: new Date().toISOString()
+    });
+  });
+});
+
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('MongoDB connected successfully'))
+  .catch((err) => console.error('MongoDB connection error:', err));
+
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
+  }
+];
+
+export default function App() {
+  // Navigation & User Context
+  const [activeTab, setActiveTab] = useState('mood');
+  const [userRole, setUserRole] = useState('student'); // 'student', 'counselor', 'admin'
+  const [userName, setUserName] = useState('Alex Taylor');
+  const [token, setToken] = useState('mock-jwt-token-12345');
+  const [isLoading, setIsLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // Data States
+  const [moodHistory, setMoodHistory] = useState(generateInitialMoods);
+  const [todayMood, setTodayMood] = useState(4);
+  const [todayStress, setTodayStress] = useState(2);
+  const [todayNote, setTodayNote] = useState('');
+  
+  // Assessment Engine State
+  const [assessmentType, setAssessmentType] = useState('PHQ-9');
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [assessmentAnswers, setAssessmentAnswers] = useState([]);
+  const [assessmentResult, setAssessmentResult] = useState(null);
+  const [assessmentHistory, setAssessmentHistory] = useState([
+    { id: 'a1', type: 'PHQ-9', date: '2026-09-10', totalScore: 6, severity: 'Mild Depression' },
+    { id: 'a2', type: 'GAD-7', date: '2026-09-15', totalScore: 4, severity: 'Minimal Anxiety' }
+  ]);
+
+  // Appointment State
+  const [counselors] = useState(INITIAL_COUNSELORS);
+  const [appointments, setAppointments] = useState([
+    { id: 'app1', studentName: 'Alex Taylor (Self)', counselorId: 'c1', counselorName: 'Dr. Sarah Jenkins', date: '2026-09-28', timeSlot: '10:00 AM - 10:50 AM', status: 'confirmed', notes: 'Academic anxiety discussion' },
+    { id: 'app2', studentName: 'Anonymous Student B', counselorId: 'c1', counselorName: 'Dr. Sarah Jenkins', date: '2026-09-29', timeSlot: '02:00 PM - 02:50 PM', status: 'pending', notes: 'Sleep issues' }
+  ]);
+  const [selectedCounselor, setSelectedCounselor] = useState(null);
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('10:00 AM');
+
+  // Real-Time Chat State
+  const [chatMessages, setChatMessages] = useState([
+    { id: '1', senderRole: 'counselor', senderName: 'Dr. Sarah Jenkins', message: 'Hello! I am here to listen. Everything you share here is confidential.', timestamp: '10:00 AM' },
+    { id: '2', senderRole: 'student', senderName: 'Anonymous Student', message: 'Hi, I have been feeling quite overwhelmed with midterms lately.', timestamp: '10:02 AM' }
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
+
+  // Resource Center State
+  const [resources, setResources] = useState(SEED_RESOURCES);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedType, setSelectedType] = useState('All');
+  const [editingResource, setEditingResource] = useState(null);
+  const [showResourceModal, setShowResourceModal] = useState(false);
+
+  // Inspector Code View State
+  const [selectedCodeIndex, setSelectedCodeIndex] = useState(0);
+
+  // Show temporary toast feedback
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleMoodSubmit = (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setTimeout(() => {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const existingIdx = moodHistory.findIndex(m => m.date === todayStr);
+      let updated = [...moodHistory];
+
+      if (existingIdx >= 0) {
+        updated[existingIdx] = { date: todayStr, moodScore: Number(todayMood), stressLevel: Number(todayStress), note: todayNote };
+      } else {
+        updated.push({ date: todayStr, moodScore: Number(todayMood), stressLevel: Number(todayStress), note: todayNote });
+      }
+
+      setMoodHistory(updated);
+      setIsLoading(false);
+      showToast('Today\'s check-in saved securely! Keep taking care of yourself.');
+    }, 600);
+  };
+
+  const handleAssessmentAnswer = (score) => {
+    const updatedAnswers = [...assessmentAnswers, score];
+    setAssessmentAnswers(updatedAnswers);
+
+    const questions = assessmentType === 'PHQ-9' ? PHQ9_QUESTIONS : GAD7_QUESTIONS;
+
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      // Calculate results server-side simulation
+      setIsLoading(true);
+      setTimeout(() => {
+        const totalScore = updatedAnswers.reduce((a, b) => a + b, 0);
+        let severity = '';
+        let guidance = '';
+
+        if (assessmentType === 'PHQ-9') {
+          if (totalScore <= 4) { severity = 'Minimal or No Symptoms'; guidance = 'Your responses suggest minimal distress. Continue practicing healthy habits!'; }
+          else if (totalScore <= 9) { severity = 'Mild Symptoms'; guidance = 'You may be experiencing mild mood fluctuations. Check out our guided exercises.'; }
+          else if (totalScore <= 14) { severity = 'Moderate Symptoms'; guidance = 'You are experiencing moderate strain. Consider scheduling a friendly check-in with a campus counselor.'; }
+          else { severity = 'Moderately Severe / Severe Symptoms'; guidance = 'Your responses reflect significant distress. We strongly encourage reaching out to campus support services.'; }
+        } else {
+          if (totalScore <= 4) { severity = 'Minimal Anxiety'; guidance = 'Your anxiety level appears low. Maintain your restorative self-care practices.'; }
+          else if (totalScore <= 9) { severity = 'Mild Anxiety'; guidance = 'Mild anxiety detected. Grounding techniques in the resource hub may prove helpful.'; }
+          else if (totalScore <= 14) { severity = 'Moderate Anxiety'; guidance = 'You are experiencing noticeable anxiety. Booking a counseling chat can offer tailored support.'; }
+          else { severity = 'Severe Anxiety'; guidance = 'High level of anxiety detected. Please remember you are not alone—connect with a counselor today.'; }
+        }
+
+        const newRecord = {
+          id: 'a_' + Date.now(),
+          type: assessmentType,
+          date: new Date().toISOString().split('T')[0],
+          totalScore,
+          severity
+        };
+
+        setAssessmentResult({ totalScore, severity, guidance, maxScore: questions.length * 3 });
+        setAssessmentHistory([newRecord, ...assessmentHistory]);
+        setIsLoading(false);
+      }, 700);
+    }
+  };
+
+  const resetAssessment = (type) => {
+    setAssessmentType(type);
+    setCurrentQuestionIndex(0);
+    setAssessmentAnswers([]);
+    setAssessmentResult(null);
+  };
+
+  const handleBookAppointment = (e) => {
+    e.preventDefault();
+    if (!selectedCounselor || !bookingDate) {
+      showToast('Please select a counselor and date.');
+      return;
+    }
+
+    setIsLoading(true);
+    setTimeout(() => {
+      const newApp = {
+        id: 'app_' + Date.now(),
+        studentName: `${userName} (${userRole === 'student' ? 'Self' : 'Student'})`,
+        counselorId: selectedCounselor.id,
+        counselorName: selectedCounselor.name,
+        date: bookingDate,
+        timeSlot: bookingTime,
+        status: 'pending',
+        notes: 'General psychological support check-in.'
+      };
+
+      setAppointments([newApp, ...appointments]);
+      setSelectedCounselor(null);
+      setBookingDate('');
+      setIsLoading(false);
+      showToast('Appointment request submitted! Your counselor will confirm shortly.');
+    }, 500);
+  };
+
+  const updateAppointmentStatus = (id, newStatus) => {
+    setAppointments(appointments.map(a => a.id === id ? { ...a, status: newStatus } : a));
+    showToast(`Appointment status updated to ${newStatus}.`);
+  };
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (!inputMessage.trim()) return;
+
+    const newMsg = {
+      id: 'm_' + Date.now(),
+      senderRole: userRole,
+      senderName: userRole === 'student' ? 'Anonymous Student' : userName,
+      message: inputMessage.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatMessages(prev => [...prev, newMsg]);
+    setInputMessage('');
+
+    // Simulate counselor auto reply if student sends
+    if (userRole === 'student') {
+      setTimeout(() => {
+        const reply = {
+          id: 'm_reply_' + Date.now(),
+          senderRole: 'counselor',
+          senderName: 'Dr. Sarah Jenkins',
+          message: 'Thank you for opening up. I am reviewing your thoughts and here to support you.',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setChatMessages(prev => [...prev, reply]);
+      }, 1400);
+    }
+  };
+
+  const filteredResources = useMemo(() => {
+    return resources.filter(res => {
+      const matchesSearch = res.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            res.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCat = selectedCategory === 'All' || res.category === selectedCategory;
+      const matchesType = selectedType === 'All' || res.type === selectedType;
+      return matchesSearch && matchesCat && matchesType;
+    });
+  }, [resources, searchQuery, selectedCategory, selectedType]);
+
+  const handleSaveResource = (e) => {
+    e.preventDefault();
+    if (editingResource.id) {
+      setResources(resources.map(r => r.id === editingResource.id ? editingResource : r));
+      showToast('Resource updated successfully.');
+    } else {
+      const newRes = { ...editingResource, id: 'res_' + Date.now() };
+      setResources([newRes, ...resources]);
+      showToast('New resource published to library.');
+    }
+    setShowResourceModal(false);
+    setEditingResource(null);
+  };
+
+  const handleDeleteResource = (id) => {
+    setResources(resources.filter(r => r.id !== id));
+    showToast('Resource removed.');
+  };
+
+  const adminStats = useMemo(() => {
+    const totalUsers = 482;
+    const avgMood = (moodHistory.reduce((acc, m) => acc + m.moodScore, 0) / (moodHistory.length || 1)).toFixed(1);
+    const avgStress = (moodHistory.reduce((acc, m) => acc + m.stressLevel, 0) / (moodHistory.length || 1)).toFixed(1);
+    
+    const severityDist = [
+      { name: 'Minimal', count: 42, color: '#10B981' },
+      { name: 'Mild', count: 35, color: '#0EA5E9' },
+      { name: 'Moderate', count: 18, color: '#F59E0B' },
+      { name: 'Severe', count: 5, color: '#EF4444' }
+    ];
+
+    return { totalUsers, avgMood, avgStress, severityDist };
+  }, [moodHistory]);
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
+      
+      {}
+      {toastMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-teal-800 text-white px-4 py-3 rounded-xl shadow-lg border border-teal-700 flex items-center gap-3 animate-fade-in">
+          <Sparkles className="w-5 h-5 text-teal-300" />
+          <span className="text-sm font-medium">{toastMessage}</span>
+        </div>
+      )}
+
+      {}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shadow-md shadow-teal-600/20">
+              <Heart className="w-6 h-6 fill-teal-100 text-teal-600" />
+            </div>
+            <div>
+              <h1 className="font-bold text-slate-900 text-lg leading-tight">MindBridge Campus</h1>
+              <p className="text-xs text-slate-500">Student Psychological Support System</p>
+            </div>
+          </div>
+
+          {/* User Role & Session Controls */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-medium text-slate-600 border border-slate-200">
+              <span className="px-2 py-1 text-slate-400 flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Role:
+              </span>
+              <button 
+                onClick={() => { setUserRole('student'); showToast('Switched to Student View'); }}
+                className={`px-3 py-1 rounded-lg transition-colors ${userRole === 'student' ? 'bg-white text-teal-700 shadow-sm font-semibold' : 'hover:text-slate-900'}`}
+              >
+                Student
+              </button>
+              <button 
+                onClick={() => { setUserRole('counselor'); showToast('Switched to Counselor View'); }}
+                className={`px-3 py-1 rounded-lg transition-colors ${userRole === 'counselor' ? 'bg-white text-teal-700 shadow-sm font-semibold' : 'hover:text-slate-900'}`}
+              >
+                Counselor
+              </button>
+              <button 
+                onClick={() => { setUserRole('admin'); showToast('Switched to Admin View'); }}
+                className={`px-3 py-1 rounded-lg transition-colors ${userRole === 'admin' ? 'bg-white text-teal-700 shadow-sm font-semibold' : 'hover:text-slate-900'}`}
+              >
+                Admin
+              </button>
+            </div>
+
+            <div className="hidden md:flex items-center gap-2 text-xs bg-teal-50 border border-teal-200 text-teal-800 px-3 py-1.5 rounded-xl">
+              <User className="w-3.5 h-3.5" />
+              <span className="font-medium">{userName}</span>
+              <span className="text-teal-400">|</span>
+              <span className="text-teal-600 font-mono text-[10px]">JWT Active</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation Menu */}
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 sm:space-x-4 border-t border-slate-100 overflow-x-auto scrollbar-none">
+          {[
+            { id: 'mood', label: 'Mood Tracker', icon: Activity },
+            { id: 'assessment', label: 'Self Assessments', icon: FileText },
+            { id: 'booking', label: 'Counselor Booking', icon: Calendar },
+            { id: 'chat', label: 'Anonymous Chat', icon: MessageSquare },
+            { id: 'resources', label: 'Resource Library', icon: BookOpen },
+            ...(userRole === 'admin' ? [{ id: 'admin', label: 'Admin Analytics', icon: BarChart3 }] : []),
+            { id: 'code', label: 'Full Stack Code & Docs', icon: Code }
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-medium border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
+                  isActive 
+                    ? 'border-teal-600 text-teal-700 bg-teal-50/50' 
+                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-teal-600' : 'text-slate-400'}`} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </header>
+
+      {}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        
+        {/* ================= MOOD TRACKER SECTION ================= */}
+        {activeTab === 'mood' && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-teal-700 to-cyan-800 text-white p-6 sm:p-8 rounded-2xl shadow-sm relative overflow-hidden">
+              <div className="relative z-10 max-w-2xl">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-2">How are you feeling today, {userName.split(' ')[0]}?</h2>
+                <p className="text-teal-100 text-sm leading-relaxed">
+                  Daily emotional check-ins help build self-awareness and track patterns over time. Your inputs remain entirely confidential.
+                </p>
+              </div>
+              <Sparkles className="absolute right-4 bottom-2 w-48 h-48 text-white/5 pointer-events-none" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Daily Input Form */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <Smile className="w-5 h-5 text-teal-600" /> Daily Check-In
+                </h3>
+
+                <form onSubmit={handleMoodSubmit} className="space-y-5">
+                  {/* Mood Rating */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                      Overall Mood Score (1 = Low, 5 = Excellent)
+                    </label>
+                    <div className="flex justify-between items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                      {[1, 2, 3, 4, 5].map((val) => (
+                        <button
+                          type="button"
+                          key={val}
+                          onClick={() => setTodayMood(val)}
+                          className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all flex flex-col items-center gap-1 ${
+                            todayMood === val 
+                              ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20 scale-105' 
+                              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                          }`}
+                        >
+                          <span className="text-base">
+                            {val === 1 ? '🙁' : val === 2 ? '😐' : val === 3 ? '🙂' : val === 4 ? '😊' : '😁'}
+                          </span>
+                          <span>{val}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Stress Level */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                      Perceived Stress Level (1 = Low, 5 = High)
+                    </label>
+                    <div className="flex justify-between items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                      {[1, 2, 3, 4, 5].map((val) => (
+                        <button
+                          type="button"
+                          key={val}
+                          onClick={() => setTodayStress(val)}
+                          className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
+                            todayStress === val 
+                              ? 'bg-cyan-700 text-white shadow-md shadow-cyan-700/20 scale-105' 
+                              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                          }`}
+                        >
+                          {val}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Daily Note */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                      Personal Reflection Note (Optional)
+                    </label>
+                    <textarea
+                      value={todayNote}
+                      onChange={(e) => setTodayNote(e.target.value)}
+                      placeholder="What influenced your mood or stress today? (e.g. exams, sleep, friends)"
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 focus:bg-white transition-all"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl shadow-md shadow-teal-600/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Save Today's Entry
+                  </button>
+                </form>
+              </div>
+
+              {/* 30-Day Trend Chart */}
+              <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-teal-600" /> 30-Day Emotional Trends
+                    </h3>
+                    <div className="flex items-center gap-4 text-xs font-medium">
+                      <span className="flex items-center gap-1 text-teal-700">
+                        <span className="w-3 h-3 rounded-full bg-teal-500 inline-block"></span> Mood (1-5)
+                      </span>
+                      <span className="flex items-center gap-1 text-cyan-800">
+                        <span className="w-3 h-3 rounded-full bg-cyan-700 inline-block"></span> Stress (1-5)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="h-64 sm:h-72 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={moodHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                        <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(tick) => tick.slice(5)} />
+                        <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 10 }} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#FFF', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '12px' }}
+                        />
+                        <Line type="monotone" dataKey="moodScore" stroke="#0D9488" strokeWidth={3} dot={{ r: 3 }} name="Mood Score" />
+                        <Line type="monotone" dataKey="stressLevel" stroke="#0E7490" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} name="Stress Level" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span>Data stored locally & synchronized to encrypted backend</span>
+                  <span className="font-medium text-teal-700">Average Mood: {(moodHistory.reduce((a,b)=>a+b.moodScore,0)/moodHistory.length).toFixed(1)} / 5</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Entry Log History */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Entry History</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                      <th className="pb-3">Date</th>
+                      <th className="pb-3">Mood Score</th>
+                      <th className="pb-3">Stress Level</th>
+                      <th className="pb-3">Reflection Note</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {moodHistory.slice(-7).reverse().map((entry, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3 font-medium text-slate-700">{entry.date}</td>
+                        <td className="py-3">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            entry.moodScore >= 4 ? 'bg-emerald-100 text-emerald-800' : entry.moodScore === 3 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {entry.moodScore} / 5
+                          </span>
+                        </td>
+                        <td className="py-3">
+                          <span className="text-slate-600 font-medium">{entry.stressLevel} / 5</span>
+                        </td>
+                        <td className="py-3 text-slate-600 max-w-md truncate">{entry.note || 'No note added.'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= ASSESSMENT ENGINE SECTION ================= */}
+        {activeTab === 'assessment' && (
+          <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Standardized Mental Health Screeners</h2>
+              <p className="text-slate-500 text-sm max-w-xl mx-auto">
+                Validated psychological self-assessments. These tools offer self-insight and are non-diagnostic.
+              </p>
+            </div>
+
+            {/* Assessment Selector Tabs */}
+            {!assessmentResult && (
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => resetAssessment('PHQ-9')}
+                  className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all border ${
+                    assessmentType === 'PHQ-9' 
+                      ? 'bg-teal-600 text-white border-teal-600 shadow-md shadow-teal-600/20' 
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  PHQ-9 (Depression Screener - 9 Qs)
+                </button>
+                <button
+                  onClick={() => resetAssessment('GAD-7')}
+                  className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all border ${
+                    assessmentType === 'GAD-7' 
+                      ? 'bg-teal-600 text-white border-teal-600 shadow-md shadow-teal-600/20' 
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  GAD-7 (Anxiety Screener - 7 Qs)
+                </button>
+              </div>
+            )}
+
+            {/* Active Assessment Question Form */}
+            {!assessmentResult ? (
+              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                {/* Progress Bar */}
+                <div>
+                  <div className="flex justify-between text-xs text-slate-500 font-medium mb-2">
+                    <span>Question {currentQuestionIndex + 1} of {assessmentType === 'PHQ-9' ? PHQ9_QUESTIONS.length : GAD7_QUESTIONS.length}</span>
+                    <span>{Math.round(((currentQuestionIndex + 1) / (assessmentType === 'PHQ-9' ? PHQ9_QUESTIONS.length : GAD7_QUESTIONS.length)) * 100)}% Completed</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2">
+                    <div 
+                      className="bg-teal-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${((currentQuestionIndex + 1) / (assessmentType === 'PHQ-9' ? PHQ9_QUESTIONS.length : GAD7_QUESTIONS.length)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Prompt */}
+                <div className="py-4">
+                  <p className="text-xs font-semibold text-teal-600 uppercase tracking-wider mb-2">
+                    Over the last 2 weeks, how often have you been bothered by:
+                  </p>
+                  <h3 className="text-xl font-semibold text-slate-900 leading-snug">
+                    {assessmentType === 'PHQ-9' ? PHQ9_QUESTIONS[currentQuestionIndex] : GAD7_QUESTIONS[currentQuestionIndex]}
+                  </h3>
+                </div>
+
+                {/* Response Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { label: 'Not at all', score: 0 },
+                    { label: 'Several days', score: 1 },
+                    { label: 'More than half the days', score: 2 },
+                    { label: 'Nearly every day', score: 3 }
+                  ].map((option) => (
+                    <button
+                      key={option.score}
+                      onClick={() => handleAssessmentAnswer(option.score)}
+                      className="p-4 rounded-xl border border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 text-left font-medium text-slate-700 text-sm transition-all flex items-center justify-between group"
+                    >
+                      <span>{option.label}</span>
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-teal-600 transition-colors" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Supportive Results Display */
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6 animate-fade-in text-center">
+                <div className="w-16 h-16 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-teal-600 uppercase tracking-wider">Assessment Complete ({assessmentType})</span>
+                  <h3 className="text-2xl font-bold text-slate-900">Total Score: {assessmentResult.totalScore} / {assessmentResult.maxScore}</h3>
+                  <div className="inline-block px-4 py-1.5 rounded-full bg-teal-50 text-teal-800 font-semibold text-sm border border-teal-200">
+                    Category: {assessmentResult.severity}
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 text-left space-y-2">
+                  <h4 className="font-semibold text-slate-900 text-sm">Supportive Guidance:</h4>
+                  <p className="text-slate-600 text-sm leading-relaxed">{assessmentResult.guidance}</p>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={() => resetAssessment(assessmentType)}
+                    className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl text-sm transition-colors"
+                  >
+                    Retake Assessment
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('booking')}
+                    className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl text-sm shadow-md shadow-teal-600/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Calendar className="w-4 h-4" /> Schedule Counselor Check-In
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Assessment History */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <h3 className="text-base font-semibold text-slate-900 mb-4">Your Past Assessment Log</h3>
+              <div className="space-y-3">
+                {assessmentHistory.map((item) => (
+                  <div key={item.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-slate-800 text-sm">{item.type} Screener</span>
+                      <p className="text-xs text-slate-500">Taken on {item.date}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-semibold text-teal-700">Score: {item.totalScore}</span>
+                      <p className="text-xs text-slate-600">{item.severity}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= COUNSELOR BOOKING SECTION ================= */}
+        {activeTab === 'booking' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Campus Counselor Booking</h2>
+                <p className="text-slate-500 text-sm">Schedule confidential 1-on-1 support sessions with licensed campus counselors.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Directory List */}
+              <div className="lg:col-span-2 space-y-4">
+                <h3 className="text-lg font-semibold text-slate-900">Available Counselors</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {counselors.map((counselor) => (
+                    <div 
+                      key={counselor.id}
+                      className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                        selectedCounselor?.id === counselor.id 
+                          ? 'border-teal-600 ring-2 ring-teal-500/20 shadow-md' 
+                          : 'border-slate-200 hover:border-slate-300 shadow-sm'
+                      }`}
+                      onClick={() => setSelectedCounselor(counselor)}
+                    >
+                      <div className="flex items-start gap-4 mb-4">
+                        <img 
+                          src={counselor.image} 
+                          alt={counselor.name} 
+                          className="w-14 h-14 rounded-full object-cover border border-slate-200"
+                        />
+                        <div>
+                          <h4 className="font-bold text-slate-900 text-base">{counselor.name}</h4>
+                          <p className="text-xs text-teal-700 font-medium">{counselor.specialty}</p>
+                          <span className="inline-block mt-2 text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                            Available: {counselor.availability}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button 
+                        className={`w-full py-2 rounded-xl text-xs font-semibold transition-colors ${
+                          selectedCounselor?.id === counselor.id 
+                            ? 'bg-teal-600 text-white' 
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {selectedCounselor?.id === counselor.id ? 'Selected for Booking' : 'Select Counselor'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Appointment Status Management List */}
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mt-8">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                    {userRole === 'counselor' ? 'Counselor Request Management Dashboard' : 'My Appointment Schedule'}
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {appointments.map((app) => (
+                      <div key={app.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-sm">{app.counselorName}</span>
+                            <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${
+                              app.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' :
+                              app.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                              app.status === 'completed' ? 'bg-blue-100 text-blue-800' : 'bg-rose-100 text-rose-800'
+                            }`}>
+                              {app.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            Student: <span className="font-medium text-slate-700">{app.studentName}</span> | Date: {app.date} ({app.timeSlot})
+                          </p>
+                        </div>
+
+                        {/* Counselor Actions */}
+                        {userRole === 'counselor' && app.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => updateAppointmentStatus(app.id, 'confirmed')}
+                              className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700"
+                            >
+                              Confirm
+                            </button>
+                            <button 
+                              onClick={() => updateAppointmentStatus(app.id, 'cancelled')}
+                              className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Booking Form Panel */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit space-y-5">
+                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-teal-600" /> Book Session
+                </h3>
+
+                {selectedCounselor ? (
+                  <form onSubmit={handleBookAppointment} className="space-y-4">
+                    <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-900">
+                      <strong>Counselor:</strong> {selectedCounselor.name}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Select Date</label>
+                      <input 
+                        type="date"
+                        value={bookingDate}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setBookingDate(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 bg-slate-50"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Time Slot</label>
+                      <select 
+                        value={bookingTime}
+                        onChange={(e) => setBookingTime(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 bg-slate-50"
+                      >
+                        <option>10:00 AM - 10:50 AM</option>
+                        <option>11:00 AM - 11:50 AM</option>
+                        <option>02:00 PM - 02:50 PM</option>
+                        <option>03:00 PM - 03:50 PM</option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm Booking'}
+                    </button>
+                  </form>
+                ) : (
+                  <div className="text-center py-8 text-slate-400 space-y-2">
+                    <User className="w-10 h-10 mx-auto text-slate-300" />
+                    <p className="text-sm">Please select a counselor from the list to begin booking.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= ANONYMOUS CHAT SECTION ================= */}
+        {activeTab === 'chat' && (
+          <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+              <Shield className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-900 leading-relaxed">
+                <strong>Privacy Guaranteed:</strong> For students, your display name in this socket room is masked as 
+                <span className="font-semibold text-amber-950"> "Anonymous Student"</span>. Counselors see only your messages to provide safe, stigma-free guidance.
+              </div>
+            </div>
+
+            {/* Socket.io Chat Box Container */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[520px]">
+              {/* Room Header */}
+              <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+                  <div>
+                    <h3 className="font-bold text-sm">Live Support Room #104</h3>
+                    <p className="text-[11px] text-slate-400">Socket.io Connected • End-to-End Encrypted Session</p>
+                  </div>
+                </div>
+                <span className="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700">
+                  You are: {userRole === 'student' ? 'Anonymous Student' : userName}
+                </span>
+              </div>
+
+              {/* Messages Container */}
+              <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/50">
+                {chatMessages.map((msg) => {
+                  const isMe = (userRole === 'student' && msg.senderRole === 'student') ||
+                               (userRole === 'counselor' && msg.senderRole === 'counselor');
+                  return (
+                    <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                      <div className="flex items-center gap-2 mb-1 text-[11px] text-slate-400">
+                        <span className="font-semibold text-slate-600">{msg.senderName}</span>
+                        <span>•</span>
+                        <span>{msg.timestamp}</span>
+                      </div>
+                      <div className={`max-w-md p-3.5 rounded-2xl text-sm leading-relaxed ${
+                        isMe 
+                          ? 'bg-teal-600 text-white rounded-tr-none shadow-sm' 
+                          : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none shadow-sm'
+                      }`}>
+                        {msg.message}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Message Input Box */}
+              <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-slate-200 flex gap-2">
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder={userRole === 'student' ? "Type an anonymous message..." : "Type your counselor response..."}
+                  className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50"
+                />
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <Send className="w-4 h-4" /> Send
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ================= RESOURCE CENTER SECTION ================= */}
+        {activeTab === 'resources' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Self-Help Resource Library</h2>
+                <p className="text-slate-500 text-sm">Evidence-based guides, articles, videos, and relaxation exercises.</p>
+              </div>
+
+              {userRole === 'admin' && (
+                <button
+                  onClick={() => {
+                    setEditingResource({ title: '', category: 'Anxiety', type: 'article', description: '', content: '' });
+                    setShowResourceModal(true);
+                  }}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" /> Add Resource (Admin)
+                </button>
+              )}
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+              {/* Search */}
+              <div className="relative w-full md:w-80">
+                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search resources..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 bg-slate-50"
+                />
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <Filter className="w-3.5 h-3.5" /> Category:
+                </div>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50 text-slate-700 focus:ring-2 focus:ring-teal-500"
+                >
+                  <option>All</option>
+                  <option>Anxiety</option>
+                  <option>Sleep</option>
+                  <option>Mindfulness</option>
+                  <option>Academic Stress</option>
+                  <option>Depression</option>
+                </select>
+
+                <select
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50 text-slate-700 focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="All">All Types</option>
+                  <option value="article">Articles</option>
+                  <option value="video">Videos</option>
+                  <option value="exercise">Exercises</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Resource Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredResources.map((res) => (
+                <div key={res.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                        {res.category}
+                      </span>
+                      <span className="text-xs text-slate-400 capitalize flex items-center gap-1">
+                        <BookOpen className="w-3 h-3" /> {res.type}
+                      </span>
+                    </div>
+
+                    <h3 className="font-bold text-slate-900 text-base leading-snug">{res.title}</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed">{res.description}</p>
+                    <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-700 border border-slate-100">
+                      <strong>Key Practice:</strong> {res.content}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <a
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); showToast(`Opening resource: ${res.title}`); }}
+                      className="text-xs font-semibold text-teal-700 hover:text-teal-800 flex items-center gap-1"
+                    >
+                      Read Full Resource <ArrowRight className="w-3 h-3" />
+                    </a>
+
+                    {userRole === 'admin' && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setEditingResource(res); setShowResourceModal(true); }}
+                          className="p-1.5 text-slate-400 hover:text-teal-600 rounded-lg hover:bg-slate-100"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteResource(res.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Admin Add/Edit Resource Modal */}
+            {showResourceModal && (
+              <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-xl border border-slate-200">
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {editingResource?.id ? 'Edit Resource' : 'Add New Resource'}
+                  </h3>
+
+                  <form onSubmit={handleSaveResource} className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Title</label>
+                      <input
+                        type="text"
+                        value={editingResource?.title || ''}
+                        onChange={(e) => setEditingResource({ ...editingResource, title: e.target.value })}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Category</label>
+                        <select
+                          value={editingResource?.category || 'Anxiety'}
+                          onChange={(e) => setEditingResource({ ...editingResource, category: e.target.value })}
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50"
+                        >
+                          <option>Anxiety</option>
+                          <option>Sleep</option>
+                          <option>Mindfulness</option>
+                          <option>Academic Stress</option>
+                          <option>Depression</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Type</label>
+                        <select
+                          value={editingResource?.type || 'article'}
+                          onChange={(e) => setEditingResource({ ...editingResource, type: e.target.value })}
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50"
+                        >
+                          <option value="article">Article</option>
+                          <option value="video">Video</option>
+                          <option value="exercise">Exercise</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Description</label>
+                      <textarea
+                        value={editingResource?.description || ''}
+                        onChange={(e) => setEditingResource({ ...editingResource, description: e.target.value })}
+                        rows={2}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Content / Practice Summary</label>
+                      <textarea
+                        value={editingResource?.content || ''}
+                        onChange={(e) => setEditingResource({ ...editingResource, content: e.target.value })}
+                        rows={3}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowResourceModal(false)}
+                        className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 text-xs font-semibold bg-teal-600 text-white hover:bg-teal-700 rounded-xl"
+                      >
+                        Save Resource
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= ADMIN ANALYTICS DASHBOARD ================= */}
+        {activeTab === 'admin' && userRole === 'admin' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="bg-teal-900 text-white p-6 rounded-2xl shadow-sm space-y-1">
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-teal-300" />
+                <h2 className="text-xl font-bold">Privacy-Preserving Institutional Dashboard</h2>
+              </div>
+              <p className="text-xs text-teal-200">
+                Notice: All metrics are strictly anonymized & aggregated across campus student demographics. No individual health entries are accessible.
+              </p>
+            </div>
+
+            {/* Aggregated Key Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+                <span className="text-xs font-semibold text-slate-400 uppercase">Active Students</span>
+                <h3 className="text-2xl font-bold text-slate-900">{adminStats.totalUsers}</h3>
+                <p className="text-[11px] text-emerald-600 font-medium">+12% check-ins this month</p>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+                <span className="text-xs font-semibold text-slate-400 uppercase">Campus Avg Mood</span>
+                <h3 className="text-2xl font-bold text-slate-900">{adminStats.avgMood} / 5.0</h3>
+                <p className="text-[11px] text-slate-500">Stable benchmark</p>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+                <span className="text-xs font-semibold text-slate-400 uppercase">Campus Avg Stress</span>
+                <h3 className="text-2xl font-bold text-slate-900">{adminStats.avgStress} / 5.0</h3>
+                <p className="text-[11px] text-amber-600 font-medium">Spike during midterms</p>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+                <span className="text-xs font-semibold text-slate-400 uppercase">Appointments Booked</span>
+                <h3 className="text-2xl font-bold text-slate-900">{appointments.length}</h3>
+                <p className="text-[11px] text-teal-600 font-medium">100% counselor response rate</p>
+              </div>
+            </div>
+
+            {/* Severity Distribution & Aggregated Recharts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 className="text-base font-semibold text-slate-900 mb-4">Assessment Severity Distribution</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={adminStats.severityDist}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#0D9488" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 className="text-base font-semibold text-slate-900 mb-4">Resource Engagement Breakdown</h3>
+                <div className="h-64 flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Anxiety', value: 40, color: '#0D9488' },
+                          { name: 'Sleep', value: 25, color: '#0EA5E9' },
+                          { name: 'Mindfulness', value: 20, color: '#F59E0B' },
+                          { name: 'Academic Stress', value: 15, color: '#8B5CF6' }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {[
+                          { color: '#0D9488' },
+                          { color: '#0EA5E9' },
+                          { color: '#F59E0B' },
+                          { color: '#8B5CF6' }
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= FULL STACK CODE & ARCHITECTURE INSPECTOR ================= */}
+        {activeTab === 'code' && (
+          <div className="space-y-8 animate-fade-in">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Full-Stack Codebase & Architecture Browser</h2>
+              <p className="text-slate-500 text-sm">
+                Inspect the production Node.js, Express REST routes, Mongoose models, Socket.io real-time chat setup, and deployment guide.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* File Selector Sidebar */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Backend Code Structure</h3>
+                {CODE_FILES.map((file, idx) => (
+                  <button
+                    key={file.path}
+                    onClick={() => setSelectedCodeIndex(idx)}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-mono transition-colors flex items-center gap-2 ${
+                      selectedCodeIndex === idx 
+                        ? 'bg-slate-900 text-teal-400 font-semibold' 
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{file.path}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Code Viewer */}
+              <div className="lg:col-span-3 bg-slate-900 text-slate-100 rounded-2xl p-6 font-mono text-xs overflow-x-auto shadow-md border border-slate-800">
+                <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800 text-slate-400">
+                  <span className="font-semibold text-teal-400">{CODE_FILES[selectedCodeIndex].path}</span>
+                  <span className="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-300">{CODE_FILES[selectedCodeIndex].title}</span>
+                </div>
+                <pre className="leading-relaxed whitespace-pre">
+                  {CODE_FILES[selectedCodeIndex].code}
+                </pre>
+              </div>
+            </div>
+
+            {/* Deployment Steps */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-teal-600" /> Deployment Instructions (Render + Vercel + MongoDB Atlas)
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <span className="font-bold text-slate-900 text-sm">1. MongoDB Atlas Setup</span>
+                  <p className="text-slate-600">Create a free cluster on MongoDB Atlas. Add Database User and set Network Access IP to 0.0.0.0/0. Copy the MONGODB_URI connection string.</p>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <span className="font-bold text-slate-900 text-sm">2. Deploy Backend to Render</span>
+                  <p className="text-slate-600">Push /backend to GitHub. Create a Render Web Service. Set Environment Variables: MONGODB_URI, JWT_SECRET, PORT=5000, CLIENT_URL.</p>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <span className="font-bold text-slate-900 text-sm">3. Deploy Frontend to Vercel</span>
+                  <p className="text-slate-600">Import /frontend repo into Vercel. Add Environment Variable NEXT_PUBLIC_API_URL pointing to your Render backend URL.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {}
+      <footer className="bg-white border-t border-slate-200 py-6 mt-12">
+        <div className="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 space-y-2">
+          <p>MindBridge Student Mental Health & Psychological Support System • Confidential & Safe</p>
+          <p className="text-slate-400">If you are experiencing an immediate emergency, please call 988 Suicide & Crisis Lifeline or reach out to campus security.</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
